@@ -31,7 +31,6 @@ optimize_mirrorlist() {
     echo "$mirrorlist_file optimization complete."
 }
 
-
 # Update package database
 update_package_cache() {
     echo "Updating package database..."
@@ -111,16 +110,6 @@ main() {
     optimize_mirrorlist "/etc/pacman.d/mirrorlist" 5
     update_package_cache
 
-    echo "Installing base system packages..."
-    pacman -S --noconfirm --needed base base-devel linux-firmware || { echo "Failed to install base system packages"; exit 1; }
-    echo "Base system packages installed."
-
-    # Prompt for username and password
-    read -p "Enter username: " username
-    read -s -p "Enter password for $username: " userpassword
-    echo ""
-    read -s -p "Enter root password: " rootpassword
-    echo ""
 
     # Choose kernel
     echo "Select kernel to install:"
@@ -144,6 +133,18 @@ main() {
             kernel_package="linux linux-headers"
             ;;
     esac
+
+    # Install base system packages and selected kernel
+    echo "Installing base system packages..."
+    pacstrap /mnt base base-devel $kernel_package linux-firmware || { echo "Failed to install base system packages"; exit 1; }
+    echo "Base system packages installed."
+
+    # Prompt for username and password
+    read -p "Enter username: " username
+    read -s -p "Enter password for $username: " userpassword
+    echo ""
+    read -s -p "Enter root password: " rootpassword
+    echo ""
 
     # Enter chroot environment to configure the new system
     echo "Entering chroot environment..."
@@ -171,9 +172,6 @@ systemctl enable systemd-resolved
 echo "[archlinuxcn]" >> /etc/pacman.conf
 echo "SigLevel = Optional TrustAll" >> /etc/pacman.conf
 echo "Server = https://mirrors.ustc.edu.cn/archlinuxcn/\$arch" >> /etc/pacman.conf
-
-# Install and configure the selected kernel
-pacman -S --noconfirm $kernel_package || { echo "Failed to install kernel"; exit 1; }
 
 # Install bootloader (GRUB example)
 pacman -S --noconfirm grub efibootmgr || { echo "Failed to install GRUB and efibootmgr"; exit 1; }
