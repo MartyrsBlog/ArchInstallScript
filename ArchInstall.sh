@@ -102,7 +102,7 @@ handle_disk() {
 main() {
     check_root
     handle_disk
-    install_package "reflector"
+#    install_package "reflector"
     optimize_mirrorlist "/etc/pacman.d/mirrorlist" "" 5
     update_package_cache
 
