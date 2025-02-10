@@ -12,9 +12,9 @@ pacman -Sy reflector --noconfirm || { echo "安装 reflector 失败"; exit 1; }
 echo "reflector 工具安装完成。"
 
 # 使用 reflector 优化镜像源，筛选中国的镜像源，按下载速度排序并取前 5 个
-echo "正在优化镜像源..."
-reflector --country China --protocol https --sort rate --save /etc/pacman.d/mirrorlist --number 5 || { echo "优化镜像源失败"; exit 1; }
-echo "镜像源优化完成。"
+echo "正在优化官方镜像源..."
+reflector --country China --protocol https --sort rate --save /etc/pacman.d/mirrorlist --number 5 || { echo "优化官方镜像源失败"; exit 1; }
+echo "官方镜像源优化完成。"
 
 # 更新软件包缓存
 echo "正在更新软件包缓存..."
@@ -163,6 +163,32 @@ echo "正在安装 sudo 并配置权限..."
 pacman -S --noconfirm sudo || { echo "安装sudo失败"; exit 1; }
 echo "%wheel ALL=(ALL) ALL" >> /etc/sudoers
 echo "sudo 安装及权限配置完成。"
+
+# 添加 ArchLinuxCN 源
+echo "[archlinuxcn]" >> /etc/pacman.conf
+echo "SigLevel = Optional TrustAll" >> /etc/pacman.conf
+echo "Server = https://mirrors.ustc.edu.cn/archlinuxcn/\$arch" >> /etc/pacman.conf
+
+# 使用 reflector 对 ArchLinuxCN 源进行测速并优化
+echo "正在优化 ArchLinuxCN 镜像源..."
+reflector --country China --protocol https --sort rate --save /etc/pacman.d/mirrorlist-archlinuxcn --url "https://mirrors.ustc.edu.cn/archlinuxcn/\$arch" --number 1 || { echo "优化 ArchLinuxCN 镜像源失败"; exit 1; }
+# 将优化后的 ArchLinuxCN 源添加到 pacman.conf
+echo -e "$(cat /etc/pacman.d/mirrorlist-archlinuxcn)\n$(cat /etc/pacman.conf)" > /etc/pacman.conf
+
+# 更新软件包缓存
+echo "正在更新包含 ArchLinuxCN 源的软件包缓存..."
+pacman -Sy || { echo "更新软件包缓存失败"; exit 1; }
+echo "软件包缓存更新完成。"
+
+# 安装 archlinuxcn-keyring
+echo "正在安装 archlinuxcn-keyring..."
+pacman -S --noconfirm archlinuxcn-keyring || { echo "安装 archlinuxcn-keyring 失败"; exit 1; }
+echo "archlinuxcn-keyring 安装完成。"
+
+# 安装 yay
+echo "正在安装 yay..."
+pacman -S --noconfirm yay || { echo "安装 yay 失败"; exit 1; }
+echo "yay 安装完成。"
 
 # 安装一些常用软件包示例
 echo "正在安装常用软件包..."
