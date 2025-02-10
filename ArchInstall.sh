@@ -154,22 +154,11 @@ locale-gen
 echo "LANG=en_US.UTF-8" > /etc/locale.conf
 export LANG=en_US.UTF-8
 
-# Add ArchLinuxCN repository
-echo "[archlinuxcn]" >> /etc/pacman.conf
-echo "SigLevel = Optional TrustAll" >> /etc/pacman.conf
-echo "Server = https://mirrors.ustc.edu.cn/archlinuxcn/\$arch" >> /etc/pacman.conf
-
-# Update pacman database to include archlinuxcn
-pacman -Sy || { echo "Failed to update package database"; exit 1; }
-
 # Install bootloader (GRUB example)
 pacman -S --noconfirm grub efibootmgr || { echo "Failed to install GRUB and efibootmgr"; exit 1; }
-grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB || { echo "Failed to install GRUB"; exit 1; }
+grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=Arch || { echo "Failed to install GRUB"; exit 1; }
 grub-mkconfig -o /boot/grub/grub.cfg || { echo "Failed to generate GRUB configuration"; exit 1; }
 
-# Install sudo and configure wheel group for sudo access
-pacman -S --noconfirm sudo
-echo "%wheel ALL=(ALL) ALL" >> /etc/sudoers
 
 # Create user and set passwords
 useradd -m -g users -G wheel -s /bin/bash $username || { echo "Failed to create user"; exit 1; }
@@ -179,8 +168,6 @@ echo "User $username created."
 # Set root password
 echo "root:$rootpassword" | chpasswd || { echo "Failed to set root password"; exit 1; }
 
-# Install yay for AUR packages
-pacman -S --noconfirm yay
 
 # Install common packages
 pacman -S --noconfirm vim git || { echo "Failed to install common packages"; exit 1; }
