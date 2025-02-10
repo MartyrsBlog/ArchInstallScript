@@ -19,12 +19,18 @@ install_package() {
 # Optimize mirrorlist using reflector
 optimize_mirrorlist() {
     local mirrorlist_file=$1
-    local url=$2
-    local number=$3
+    local number=$2
     echo "Optimizing $mirrorlist_file using reflector..."
-    reflector --country China --protocol https --sort rate --save $mirrorlist_file --url "$url" --number $number || { echo "Failed to optimize $mirrorlist_file"; exit 1; }
+
+    # Ensure that the number of mirrors is set to a default if not provided
+    number=${number:-5}
+
+    # Use reflector to generate an optimized mirrorlist
+    reflector --country China --protocol https --sort rate --number $number --save $mirrorlist_file || { echo "Failed to optimize $mirrorlist_file"; exit 1; }
+
     echo "$mirrorlist_file optimization complete."
 }
+
 
 # Update package database
 update_package_cache() {
@@ -102,8 +108,7 @@ handle_disk() {
 main() {
     check_root
     handle_disk
-#    install_package "reflector"
-    optimize_mirrorlist "/etc/pacman.d/mirrorlist" "" 5
+    optimize_mirrorlist "/etc/pacman.d/mirrorlist" 5
     update_package_cache
 
     echo "Installing base system packages..."
