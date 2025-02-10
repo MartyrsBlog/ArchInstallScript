@@ -139,6 +139,20 @@ main() {
     pacstrap /mnt base base-devel $kernel_package linux-firmware || { echo "Failed to install base system packages"; exit 1; }
     echo "Base system packages installed."
 
+    # Enter chroot environment to configure the new system
+    echo "Entering chroot environment..."
+    arch-chroot /mnt <<EOF
+    # Set timezone
+    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+    hwclock --systohc
+
+    # Configure locale
+    sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+    sed -i 's/#zh_CN.UTF-8 UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen
+    locale-gen
+    echo "LANG=en_US.UTF-8" > /etc/locale.conf
+    export LANG=en_US.UTF-8
+
     # Prompt for username and password
     read -p "Enter username: " username
     read -s -p "Enter password for $username: " userpassword
@@ -146,56 +160,57 @@ main() {
     read -s -p "Enter root password: " rootpassword
     echo ""
 
-    # Enter chroot environment to configure the new system
-    echo "Entering chroot environment..."
-    arch-chroot /mnt /bin/bash <<EOF
-# Set timezone
-ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
-hwclock --systohc
+    # Add ArchLinuxCN repository
+    echo "[archlinuxcn]" >> /etc/pacman.conf
+    echo "SigLevel = Optional TrustAll" >> /etc/pacman.conf
+    echo "Server = https://mirrors.ustc.edu.cn/archlinuxcn/\$arch" >> /etc/pacman.conf
 
-# Configure locale
-sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
-sed -i 's/#zh_CN.UTF-8 UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen
-locale-gen
-echo "LANG=en_US.UTF-8" > /etc/locale.conf
-export LANG=en_US.UTF-8
+    # Prompt for CPU choice
+    echo "Select your CPU vendor:"
+    echo "1. Intel"
+    echo "2. AMD"
+    read -p "Enter choice (1/2): " cpu_choice
+    case $cpu_choice in
+        1)
+            # Install Intel microcode
+            echo "Installing Intel microcode..."
+            pacman -S --noconfirm intel-ucode || { echo "Failed to install Intel microcode"; exit 1; }
+            echo "Intel microcode installed."
+            ;;
+        2)
+            # Install AMD microcode
+            echo "Installing AMD microcode..."
+            pacman -S --noconfirm amd-ucode || { echo "Failed to install AMD microcode"; exit 1; }
+            echo "AMD microcode installed."
+            ;;
+        *)
+            echo "Invalid choice, skipping microcode installation."
+            ;;
+    esac
 
-# Set hostname
-echo "myarch" > /etc/hostname
+    # Install bootloader (GRUB example)
+    pacman -S --noconfirm grub efibootmgr || { echo "Failed to install GRUB and efibootmgr"; exit 1; }
+    grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB || { echo "Failed to install GRUB"; exit 1; }
+    grub-mkconfig -o /boot/grub/grub.cfg || { echo "Failed to generate GRUB configuration"; exit 1; }
 
-# Configure network
-echo -e "[Match]\nName=*\n\n[Network]\nDHCP=yes" > /etc/systemd/network/20-wired.network
-systemctl enable systemd-networkd
-systemctl enable systemd-resolved
+    # Install sudo and configure wheel group for sudo access
+    pacman -S --noconfirm sudo
+    echo "%wheel ALL=(ALL) ALL" >> /etc/sudoers
 
-# Add ArchLinuxCN repository
-echo "[archlinuxcn]" >> /etc/pacman.conf
-echo "SigLevel = Optional TrustAll" >> /etc/pacman.conf
-echo "Server = https://mirrors.ustc.edu.cn/archlinuxcn/\$arch" >> /etc/pacman.conf
+    # Create user and set passwords
+    useradd -m -g users -G wheel -s /bin/bash $username || { echo "Failed to create user"; exit 1; }
+    echo "$username:$userpassword" | chpasswd || { echo "Failed to set user password"; exit 1; }
+    echo "User $username created."
 
-# Install bootloader (GRUB example)
-pacman -S --noconfirm grub efibootmgr || { echo "Failed to install GRUB and efibootmgr"; exit 1; }
-grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB || { echo "Failed to install GRUB"; exit 1; }
-grub-mkconfig -o /boot/grub/grub.cfg || { echo "Failed to generate GRUB configuration"; exit 1; }
+    # Set root password
+    echo "root:$rootpassword" | chpasswd || { echo "Failed to set root password"; exit 1; }
 
-# Install sudo and configure wheel group for sudo access
-pacman -S --noconfirm sudo
-echo "%wheel ALL=(ALL) ALL" >> /etc/sudoers
+    # Install yay for AUR packages
+    pacman -S --noconfirm yay
 
-# Create user and set passwords
-useradd -m -g users -G wheel -s /bin/bash $username || { echo "Failed to create user"; exit 1; }
-echo "$username:$userpassword" | chpasswd || { echo "Failed to set user password"; exit 1; }
-echo "User $username created."
-
-# Set root password
-echo "root:$rootpassword" | chpasswd || { echo "Failed to set root password"; exit 1; }
-
-# Install yay for AUR packages
-pacman -S --noconfirm yay
-
-# Install common packages
-pacman -S --noconfirm vim git || { echo "Failed to install common packages"; exit 1; }
-EOF
+    # Install common packages
+    pacman -S --noconfirm vim git || { echo "Failed to install common packages"; exit 1; }
+    EOF
 
     echo "System setup complete. Please reboot."
 }
