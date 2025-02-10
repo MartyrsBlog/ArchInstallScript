@@ -112,7 +112,7 @@ main() {
     update_package_cache
 
     echo "Installing base system packages..."
-    pacman -S --noconfirm base base-devel linux-firmware || { echo "Failed to install base system packages"; exit 1; }
+    pacman -S --noconfirm --needed base base-devel linux-firmware || { echo "Failed to install base system packages"; exit 1; }
     echo "Base system packages installed."
 
     # Prompt for username and password
