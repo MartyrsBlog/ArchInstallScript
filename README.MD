@@ -19,18 +19,18 @@
 ### 运行脚本
 1. 下载脚本：
     ```bash
-    curl -O https://raw.githubusercontent.com/your_username/your_repo/master/arch_install_script.sh
+    https://raw.githubusercontent.com/MartyrsBlog/ArchInstallScript/refs/heads/main/ArchInstall.sh
     ```
-    请将 `your_username` 和 `your_repo` 替换为你在 GitHub 上的用户名和仓库名。
+    
 
 2. 赋予脚本执行权限：
     ```bash
-    chmod +x arch_install_script.sh
+    chmod +x ArchInstall.sh
     ```
 
 3. 运行脚本：
     ```bash
-    ./arch_install_script.sh
+    ./ArchInstall.sh
     ```
 
 ### 脚本执行过程
