@@ -141,6 +141,7 @@ main() {
 
     # Enter chroot environment to configure the new system
     echo "Entering chroot environment..."
+
 arch-chroot /mnt /bin/bash <<EOF
 # Set timezone
 ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
@@ -153,18 +154,13 @@ locale-gen
 echo "LANG=en_US.UTF-8" > /etc/locale.conf
 export LANG=en_US.UTF-8
 
-# Prompt for username and password
-read -p "Enter username: " username
-read -s -p "Enter password for $username: " userpassword
-echo ""
-read -s -p "Enter root password: " rootpassword
-echo ""
-
 # Add ArchLinuxCN repository
 echo "[archlinuxcn]" >> /etc/pacman.conf
 echo "SigLevel = Optional TrustAll" >> /etc/pacman.conf
 echo "Server = https://mirrors.ustc.edu.cn/archlinuxcn/\$arch" >> /etc/pacman.conf
 
+# Update pacman database to include archlinuxcn
+pacman -Sy || { echo "Failed to update package database"; exit 1; }
 
 # Install bootloader (GRUB example)
 pacman -S --noconfirm grub efibootmgr || { echo "Failed to install GRUB and efibootmgr"; exit 1; }
@@ -189,7 +185,6 @@ pacman -S --noconfirm yay
 # Install common packages
 pacman -S --noconfirm vim git || { echo "Failed to install common packages"; exit 1; }
 EOF
-
 
     echo "System setup complete. Please reboot."
 }
