@@ -110,6 +110,11 @@ main() {
     optimize_mirrorlist "/etc/pacman.d/mirrorlist" 5
     update_package_cache
 
+    # Select CPU type for microcode
+    echo "Select CPU type:"
+    echo "1. Intel"
+    echo "2. AMD"
+    read -p "Enter choice (1/2): " cpu_choice
 
     # Choose kernel
     echo "Select kernel to install:"
@@ -142,7 +147,7 @@ main() {
     # Enter chroot environment to configure the new system
     echo "Entering chroot environment..."
 
-arch-chroot /mnt /bin/bash <<EOF
+    arch-chroot /mnt /bin/bash <<EOF
 # Set timezone
 ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 hwclock --systohc
@@ -154,11 +159,19 @@ locale-gen
 echo "LANG=en_US.UTF-8" > /etc/locale.conf
 export LANG=en_US.UTF-8
 
+# Install microcode for Intel or AMD
+if [ "$cpu_choice" == "1" ]; then
+    # Intel microcode
+    pacman -S --noconfirm intel-ucode || { echo "Failed to install Intel microcode"; exit 1; }
+elif [ "$cpu_choice" == "2" ]; then
+    # AMD microcode
+    pacman -S --noconfirm amd-ucode || { echo "Failed to install AMD microcode"; exit 1; }
+fi
+
 # Install bootloader (GRUB example)
 pacman -S --noconfirm grub efibootmgr || { echo "Failed to install GRUB and efibootmgr"; exit 1; }
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=Arch || { echo "Failed to install GRUB"; exit 1; }
 grub-mkconfig -o /boot/grub/grub.cfg || { echo "Failed to generate GRUB configuration"; exit 1; }
-
 
 # Create user and set passwords
 useradd -m -g users -G wheel -s /bin/bash $username || { echo "Failed to create user"; exit 1; }
@@ -167,7 +180,6 @@ echo "User $username created."
 
 # Set root password
 echo "root:$rootpassword" | chpasswd || { echo "Failed to set root password"; exit 1; }
-
 
 # Install common packages
 pacman -S --noconfirm vim git || { echo "Failed to install common packages"; exit 1; }
